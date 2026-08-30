@@ -1,20 +1,23 @@
+// routes/vendorRoutes.js
 import express from 'express';
 import {
   getAllVendors,
   getVendorById,
   createVendor,
   updateVendor,
-  deleteVendor
+  deleteVendor,
+  getVendorWithDetails
 } from '../controllers/vendorController.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// PUBLIC - No authentication needed
+// Public
 router.get('/', getAllVendors);
 router.get('/:id', getVendorById);
+router.get('/:id/details', getVendorWithDetails);
 
-// PROTECTED - Admin only
+// Protected
 router.post('/', authMiddleware, createVendor);
 router.put('/:id', authMiddleware, updateVendor);
 router.delete('/:id', authMiddleware, deleteVendor);

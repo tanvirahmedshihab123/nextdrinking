@@ -1,4 +1,6 @@
+// controllers/vendorController.js
 import Vendor from '../models/Vendor.js';
+import Customer from '../models/Customer.js';
 
 const generateVendorId = () => {
   const date = new Date();
@@ -64,6 +66,29 @@ export const deleteVendor = async (req, res) => {
       return res.status(404).json({ message: 'Vendor not found' });
     }
     res.json({ message: 'Vendor deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================================
+// GET VENDOR WITH ROUTES AND CUSTOMERS
+// ============================================
+export const getVendorWithDetails = async (req, res) => {
+  try {
+    const vendor = await Vendor.findOne({ vendorId: req.params.id });
+    if (!vendor) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+    
+    // Get customers by route
+    const customers = await Customer.find({ route: { $in: vendor.routes.map(r => r.routeId) } });
+    
+    res.json({
+      vendor,
+      customers,
+      totalCustomers: customers.length
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
