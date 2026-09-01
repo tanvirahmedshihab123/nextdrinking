@@ -1,32 +1,36 @@
-// models/Customer.js
 import mongoose from 'mongoose';
 
 const customerSchema = new mongoose.Schema({
   customerId: { 
-    type: String, 
+    type: Number, 
     required: true, 
     unique: true 
   },
   name: { 
     type: String, 
-    required: true 
+     
   },
   mobile: { 
     type: String, 
-    required: true 
+     
+  },
+  email: {
+    type: String,
+    default: ''
   },
   address: { 
-    type: String 
+    type: String,
+    default: ''
   },
   route: { 
-    type: String 
+    type: String,
+    default: ''
   },
   
   // ============ PRICING ============
   customPrice: {
     type: Number,
-    default: null, // null = use default product price
-    description: "Special rate for this customer"
+    default: null
   },
   priceType: {
     type: String,
@@ -37,35 +41,29 @@ const customerSchema = new mongoose.Schema({
   // ============ JAR MANAGEMENT ============
   jarGiven: {
     type: Number,
-    default: 0,
-    description: "Total jars given to customer"
+    default: 0
   },
   jarCollected: {
     type: Number,
-    default: 0,
-    description: "Total jars collected from customer"
+    default: 0
   },
   jarBalance: {
     type: Number,
-    default: 0,
-    description: "jarGiven - jarCollected"
+    default: 0
   },
   
   // ============ WATER DISPENSER ============
   waterDispenser: { 
     type: Boolean, 
-    default: false,
-    description: "Does customer have water dispenser?"
+    default: false
   },
   waterDispenserCollect: { 
     type: Boolean, 
-    default: false,
-    description: "Is dispenser collected?"
+    default: false
   },
   dispenserDue: {
     type: Number,
-    default: 0,
-    description: "Due for water dispenser"
+    default: 0
   },
   
   // ============ FINANCIAL ============
@@ -81,10 +79,6 @@ const customerSchema = new mongoose.Schema({
     type: Number, 
     default: 0 
   },
-  totalPurchases: {
-    type: Number,
-    default: 0
-  },
   
   // ============ SUBSCRIPTION ============
   subscription: {
@@ -95,12 +89,6 @@ const customerSchema = new mongoose.Schema({
   monthlyRate: {
     type: Number,
     default: 0
-  },
-  lastBillingDate: {
-    type: Date
-  },
-  nextBillingDate: {
-    type: Date
   },
   
   // ============ NOTES ============
@@ -126,13 +114,11 @@ customerSchema.pre('save', function(next) {
   next();
 });
 
-// Generate customer ID
-customerSchema.statics.generateCustomerId = function() {
-  const date = new Date();
-  const year = date.getFullYear().toString().slice(-2);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const count = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `CUS${year}${month}${count}`;
+// Get next customer ID
+customerSchema.statics.getNextCustomerId = async function() {
+  const lastCustomer = await this.findOne().sort({ customerId: -1 });
+  if (!lastCustomer) return 1;
+  return lastCustomer.customerId + 1;
 };
 
 export default mongoose.model('Customer', customerSchema);

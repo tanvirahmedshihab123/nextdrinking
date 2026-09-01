@@ -1,4 +1,3 @@
-// routes/customerRoutes.js
 import express from 'express';
 import {
   getAllCustomers,
@@ -15,25 +14,30 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// PUBLIC ROUTES (No auth needed for now)
+// ============ PUBLIC ROUTES ============
 router.get('/', getAllCustomers);
 router.get('/:id', getCustomerById);
+
+// ============ CREATE CUSTOMER ============
+// Customer ID is auto-generated if not provided
 router.post('/', createCustomer);
+
+// ============ UPDATE CUSTOMER ============
 router.put('/:id', updateCustomer);
 
-// JAR MANAGEMENT
+// ============ JAR MANAGEMENT ============
 router.put('/:id/jar', updateJarStatus);
 
-// DISPENSER MANAGEMENT
+// ============ DISPENSER MANAGEMENT ============
 router.put('/:id/dispenser', updateDispenserStatus);
 
-// PAYMENT
+// ============ PAYMENT ============
 router.put('/:id/payment', recordPayment);
 
-// BULK UPDATE
+// ============ BULK UPDATE ============
 router.post('/bulk', bulkUpdateCustomers);
 
-// PROTECTED ROUTES (Admin only)
-router.delete('/:id',  deleteCustomer);
+// ============ DELETE (Admin only) ============
+router.delete('/:id', deleteCustomer);
 
 export default router;

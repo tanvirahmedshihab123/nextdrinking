@@ -1,28 +1,21 @@
-// controllers/customerController.js
 import Customer from '../models/Customer.js';
-import mongoose from 'mongoose';
 
-// Generate unique customer ID
-const generateCustomerId = () => {
-  const date = new Date();
-  const year = date.getFullYear().toString().slice(-2);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `CUS${year}${month}${random}`;
-};
-
+// ============ GET ALL CUSTOMERS ============
 export const getAllCustomers = async (req, res) => {
   try {
-    const customers = await Customer.find().sort({ createdAt: -1 });
+    const customers = await Customer.find().sort({ customerId: 1 });
     res.json(customers);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// ============ GET CUSTOMER BY ID ============
 export const getCustomerById = async (req, res) => {
   try {
-    const customer = await Customer.findOne({ customerId: req.params.id });
+    const customer = await Customer.findOne({ 
+      customerId: parseInt(req.params.id) 
+    });
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
@@ -32,16 +25,31 @@ export const getCustomerById = async (req, res) => {
   }
 };
 
+// ============ CREATE CUSTOMER ============
 export const createCustomer = async (req, res) => {
   try {
+    let customerId = req.body.customerId;
+    
+    // If no customerId provided, auto-generate next number
+    if (!customerId) {
+      customerId = await Customer.getNextCustomerId();
+    } else {
+      // Check if the provided ID already exists
+      const existing = await Customer.findOne({ customerId: parseInt(customerId) });
+      if (existing) {
+        return res.status(400).json({ 
+          message: `Customer ID ${customerId} already exists. Please use a different ID.` 
+        });
+      }
+      customerId = parseInt(customerId);
+    }
+
     const customerData = {
       ...req.body,
-      customerId: generateCustomerId()
+      customerId: customerId,
+      jarBalance: (req.body.jarGiven || 0) - (req.body.jarCollected || 0)
     };
-    
-    // Calculate jar balance
-    customerData.jarBalance = (customerData.jarGiven || 0) - (customerData.jarCollected || 0);
-    
+
     const customer = await Customer.create(customerData);
     res.status(201).json(customer);
   } catch (error) {
@@ -49,10 +57,11 @@ export const createCustomer = async (req, res) => {
   }
 };
 
+// ============ UPDATE CUSTOMER ============
 export const updateCustomer = async (req, res) => {
   try {
     const customer = await Customer.findOneAndUpdate(
-      { customerId: req.params.id },
+      { customerId: parseInt(req.params.id) },
       { 
         ...req.body, 
         updatedAt: new Date(),
@@ -69,9 +78,12 @@ export const updateCustomer = async (req, res) => {
   }
 };
 
+// ============ DELETE CUSTOMER ============
 export const deleteCustomer = async (req, res) => {
   try {
-    const customer = await Customer.findOneAndDelete({ customerId: req.params.id });
+    const customer = await Customer.findOneAndDelete({ 
+      customerId: parseInt(req.params.id) 
+    });
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
@@ -84,8 +96,10 @@ export const deleteCustomer = async (req, res) => {
 // ============ JAR MANAGEMENT ============
 export const updateJarStatus = async (req, res) => {
   try {
-    const { action, count } = req.body; // action: 'given' or 'collected'
-    const customer = await Customer.findOne({ customerId: req.params.id });
+    const { action, count } = req.body;
+    const customer = await Customer.findOne({ 
+      customerId: parseInt(req.params.id) 
+    });
     
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
@@ -111,14 +125,20 @@ export const updateJarStatus = async (req, res) => {
 export const updateDispenserStatus = async (req, res) => {
   try {
     const { hasDispenser, isCollected, dueAmount } = req.body;
-    const customer = await Customer.findOne({ customerId: req.params.id });
+    const customer = await Customer.findOne({ 
+      customerId: parseInt(req.params.id) 
+    });
     
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
     
-    customer.waterDispenser = hasDispenser !== undefined ? hasDispenser : customer.waterDispenser;
-    customer.waterDispenserCollect = isCollected !== undefined ? isCollected : customer.waterDispenserCollect;
+    if (hasDispenser !== undefined) {
+      customer.waterDispenser = hasDispenser;
+    }
+    if (isCollected !== undefined) {
+      customer.waterDispenserCollect = isCollected;
+    }
     if (dueAmount !== undefined) {
       customer.dispenserDue = dueAmount;
     }
@@ -131,11 +151,13 @@ export const updateDispenserStatus = async (req, res) => {
   }
 };
 
-// ============ PAYMENT ============
+// ============ RECORD PAYMENT ============
 export const recordPayment = async (req, res) => {
   try {
     const { amount, paymentMethod, note } = req.body;
-    const customer = await Customer.findOne({ customerId: req.params.id });
+    const customer = await Customer.findOne({ 
+      customerId: parseInt(req.params.id) 
+    });
     
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
@@ -155,12 +177,12 @@ export const recordPayment = async (req, res) => {
 // ============ BULK UPDATE ============
 export const bulkUpdateCustomers = async (req, res) => {
   try {
-    const updates = req.body; // Array of { customerId, data }
+    const updates = req.body;
     const results = [];
     
     for (const update of updates) {
       const customer = await Customer.findOneAndUpdate(
-        { customerId: update.customerId },
+        { customerId: parseInt(update.customerId) },
         { ...update.data, updatedAt: new Date() },
         { new: true }
       );
